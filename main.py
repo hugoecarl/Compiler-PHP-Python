@@ -11,7 +11,9 @@ class Tokenizer:
     def __init__(self, origin):
         self.origin = origin
         self.position = 0
-        self.actual = ''
+        self.actual = None
+        self.selectNext()
+        
 
     def selectNext(self):
         if self.position == len(self.origin):
@@ -29,52 +31,59 @@ class Tokenizer:
             self.position += 1
             return self.actual
         elif self.origin[self.position].isnumeric():
-            self.actual = ''
+            num = ''
             while self.origin[self.position].isnumeric():
-                self.actual += self.origin[self.position]
+                num += self.origin[self.position]
                 self.position += 1
                 if self.position == len(self.origin):
                     break
-            return Token('Num', self.actual)
+            self.actual = Token('Num', int(num))
+            return self.actual
 
 
 class Parser:  
+
+    tokens = None
     
     @staticmethod
-    def parseExpression(tokens):
+    def parseExpression():
         result = 0
-        nex = tokens.selectNext()
+        nex = Parser.tokens.actual
         
         if nex.type == 'Num':
             result = int(nex.value)
-
-        while nex.value != 'EOF':
-            nex = tokens.selectNext()
-            if nex.value == '+':
-                nex = tokens.selectNext()            
-                if nex.value.isnumeric():
-                    result += int(nex.value)
-                else:
-                    raise Exception('Erro')
-            elif nex.value == '-':
-                nex = tokens.selectNext()            
-                if nex.value.isnumeric():
-                    result -= int(nex.value)
-                else:
-                    raise Exception('Erro')
-            elif nex.value.isnumeric():
-                raise Exception('Erro')
-        return result
+            nex = Parser.tokens.selectNext()
+                
+            while nex.value in ['+','-']:
+            
+                if nex.value == '+':
+                    nex = Parser.tokens.selectNext()            
+                    if nex.type == 'Num':
+                        result += nex.value
+                    else:
+                        raise Exception('Expected Number')
+                elif nex.value == '-':
+                    nex = Parser.tokens.selectNext()            
+                    if nex.type == 'Num':
+                        result -= nex.value
+                    else:
+                        raise Exception('Expected Number')
+                nex = Parser.tokens.selectNext() 
+            return result
+        else:
+            raise Exception('Expected number')
 
  
     @staticmethod
     def run(code):
-        tokens = Tokenizer(code)
-        return Parser.parseExpression(tokens)
+        Parser.tokens = Tokenizer(code)
+        res = Parser.parseExpression()
+
+        if Parser.tokens.actual.value == 'EOF':
+            return res
+        else:
+            raise Exception("EOF or signal Expected")
 
 if __name__ == "__main__":
     
     print(Parser.run(sys.argv[1]))
-
-
-

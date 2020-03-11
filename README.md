@@ -1,3 +1,3 @@
 # Compilator
 
-![Alt text](C:\Users\hugoc\Downloads\w.jpeg?raw=true "Title")
+![Alt text](https://github.com/hugoecarl/Compilator/blob/roteiro2/diagrama.jpeg)

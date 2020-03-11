@@ -1,10 +1,35 @@
 import sys
 
+class PrePro:
+
+    @staticmethod
+    def filter(string):
+        string = list(string)
+        i = 1 
+        
+        while i < len(string): 
+            if string[i - 1] == '/' and string[i] == '*':
+                j = i + 1
+                fechou = False
+                while j < len(string):
+                    if string[j] == '*' and string[j + 1] == '/':
+                        fechou = True
+                        break
+                    j += 1
+                if fechou:
+                    del string[i-1:j+2]
+                else:
+                    raise Exception('Comentário errado')
+            i += 1   
+        return ''.join(string)
+        
+
 class Token:
 
     def __init__(self, type, value):
         self.type = type
         self.value = value
+
 
 class Tokenizer:
 
@@ -30,6 +55,14 @@ class Tokenizer:
             self.actual = Token('String', '-')
             self.position += 1
             return self.actual
+        elif self.origin[self.position] == "*":
+            self.actual = Token('String', '*')
+            self.position += 1
+            return self.actual
+        elif self.origin[self.position] == "/":
+            self.actual = Token('String', '/')
+            self.position += 1
+            return self.actual
         elif self.origin[self.position].isnumeric():
             num = ''
             while self.origin[self.position].isnumeric():
@@ -44,31 +77,44 @@ class Tokenizer:
 class Parser:  
 
     tokens = None
+    nex = None
     
     @staticmethod
-    def parseExpression():
-        result = 0
-        nex = Parser.tokens.actual
-        
-        if nex.type == 'Num':
-            result = int(nex.value)
-            nex = Parser.tokens.selectNext()
+    def parseExpression():    
+        result = Parser.parseTerm()
                 
-            while nex.value in ['+','-']:
-            
-                if nex.value == '+':
-                    nex = Parser.tokens.selectNext()            
-                    if nex.type == 'Num':
-                        result += nex.value
+        while Parser.nex.value in ['+','-']:
+            if Parser.nex.value == '+':
+                Parser.nex = Parser.tokens.selectNext()            
+                result += Parser.parseTerm()
+            elif Parser.nex.value == '-':
+                Parser.nex = Parser.tokens.selectNext()            
+                result -= Parser.parseTerm()
+        return result
+
+
+    @staticmethod
+    def parseTerm():
+        Parser.nex = Parser.tokens.actual
+        
+        if Parser.nex.type == 'Num':
+            result = int(Parser.nex.value)
+            Parser.nex = Parser.tokens.selectNext()
+                
+            while Parser.nex.value in ['*','/']: 
+                if Parser.nex.value == '*':
+                    Parser.nex = Parser.tokens.selectNext()            
+                    if Parser.nex.type == 'Num':
+                        result *= Parser.nex.value
                     else:
                         raise Exception('Expected Number')
-                elif nex.value == '-':
-                    nex = Parser.tokens.selectNext()            
-                    if nex.type == 'Num':
-                        result -= nex.value
+                elif Parser.nex.value == '/':
+                    Parser.nex = Parser.tokens.selectNext()            
+                    if Parser.nex.type == 'Num':
+                        result //= Parser.nex.value
                     else:
                         raise Exception('Expected Number')
-                nex = Parser.tokens.selectNext() 
+                Parser.nex = Parser.tokens.selectNext() 
             return result
         else:
             raise Exception('Expected number')
@@ -86,4 +132,4 @@ class Parser:
 
 if __name__ == "__main__":
     
-    print(Parser.run(sys.argv[1]))
+    print(Parser.run(PrePro.filter(sys.argv[1])))

@@ -6,6 +6,10 @@ class Compilador:
         self.lista_op = []
 
     def parse(self):
+        for i in range(1, len(sys.argv[1])):
+            if sys.argv[1][i - 1].isnumeric() and sys.argv[1][i] == ' ' and sys.argv[1][i + 1].isnumeric():
+                raise NameError('Espaço e número não permitido')
+        
         lis = list(sys.argv[1].replace(' ', ''))  
         i = 0
         j = 0

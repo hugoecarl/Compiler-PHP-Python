@@ -95,29 +95,41 @@ class Parser:
 
     @staticmethod
     def parseTerm():
-        Parser.nex = Parser.tokens.actual
         
+        result = Parser.parseFactor()
+                
+        while Parser.nex.value in ['*','/']: 
+            if Parser.nex.value == '*':
+                Parser.nex = Parser.tokens.selectNext()            
+                result *= Parser.parseFactor()
+            elif Parser.nex.value == '/':
+                Parser.nex = Parser.tokens.selectNext()            
+                result //= Parser.parseFactor()
+        return result
+
+    @staticmethod
+    def parseFactor():
+        
+        Parser.nex = Parser.tokens.actual
+
+
         if Parser.nex.type == 'Num':
             result = int(Parser.nex.value)
             Parser.nex = Parser.tokens.selectNext()
-                
-            while Parser.nex.value in ['*','/']: 
-                if Parser.nex.value == '*':
-                    Parser.nex = Parser.tokens.selectNext()            
-                    if Parser.nex.type == 'Num':
-                        result *= Parser.nex.value
-                    else:
-                        raise Exception('Expected Number')
-                elif Parser.nex.value == '/':
-                    Parser.nex = Parser.tokens.selectNext()            
-                    if Parser.nex.type == 'Num':
-                        result //= Parser.nex.value
-                    else:
-                        raise Exception('Expected Number')
-                Parser.nex = Parser.tokens.selectNext() 
-            return result
+        elif Parser.nex.value == '+':
+            Parser.nex = Parser.tokens.selectNext()
+            result = +Parser.parseFactor()
+        elif Parser.nex.value == '-':
+            Parser.nex = Parser.tokens.selectNext()
+            result = -Parser.parseFactor() 
+    
         else:
-            raise Exception('Expected number')
+            raise Exception('Expected Number')
+        return result 
+
+
+
+
 
  
     @staticmethod

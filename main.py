@@ -63,6 +63,14 @@ class Tokenizer:
             self.actual = Token('String', '/')
             self.position += 1
             return self.actual
+        elif self.origin[self.position] == "(":
+            self.actual = Token('Paren', '(')
+            self.position += 1
+            return self.actual
+        elif self.origin[self.position] == ")":
+            self.actual = Token('Paren', ')')
+            self.position += 1
+            return self.actual
         elif self.origin[self.position].isnumeric():
             num = ''
             while self.origin[self.position].isnumeric():
@@ -104,7 +112,7 @@ class Parser:
                 result *= Parser.parseFactor()
             elif Parser.nex.value == '/':
                 Parser.nex = Parser.tokens.selectNext()            
-                result //= Parser.parseFactor()
+                result /= Parser.parseFactor()
         return result
 
     @staticmethod
@@ -122,7 +130,13 @@ class Parser:
         elif Parser.nex.value == '-':
             Parser.nex = Parser.tokens.selectNext()
             result = -Parser.parseFactor() 
-    
+        elif Parser.nex.value == '(':
+            Parser.nex = Parser.tokens.selectNext()
+            result = Parser.parseExpression()
+            if Parser.nex.value != ')':
+                raise Exception('Parenteses n fechado')
+            Parser.nex = Parser.tokens.selectNext()        
+        
         else:
             raise Exception('Expected Number')
         return result 

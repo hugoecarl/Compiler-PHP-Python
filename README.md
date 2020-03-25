@@ -2,8 +2,9 @@
 
 ### EBNF:  
 Expression = Term, {("+" | "-"), Term};  
-Term = Number, {("*" | "/"), Number};  
+Term = Factor, {("*" | "/"), Factor};  
+Factor = Number | ("+" | "-"), Factor | "(", Expression, ")";  
 Number = (0 | 1 | ... | 9) , {(0 | 1 | ... | 9)};  
 
 ### Diagrama:  
-![Alt text](https://github.com/hugoecarl/Compilator/blob/roteiro2/diagrama.jpeg)
+![Alt text](https://github.com/hugoecarl/Compilator/blob/roteiro3/diagrama.jpeg)

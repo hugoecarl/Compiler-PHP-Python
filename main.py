@@ -112,7 +112,7 @@ class Parser:
                 result *= Parser.parseFactor()
             elif Parser.nex.value == '/':
                 Parser.nex = Parser.tokens.selectNext()            
-                result /= Parser.parseFactor()
+                result //= Parser.parseFactor()
         return result
 
     @staticmethod

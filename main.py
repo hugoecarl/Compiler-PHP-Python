@@ -24,6 +24,57 @@ class PrePro:
         return ''.join(string)
         
 
+class Node:
+
+    def __init__(self, value, children):
+        self.value = None
+        self.children = children
+
+    def evaluate(self):
+        pass 
+
+
+class BinOp(Node):
+    
+    def __init__(self,value, children):
+        self.value = value
+        self.children = children
+
+    def evaluate(self):
+        if self.value == '+':
+            return self.children[0].evaluate() + self.children[1].evaluate() 
+        elif self.value == '-':
+            return self.children[0].evaluate() - self.children[1].evaluate()
+        elif self.value == '*':
+            return self.children[0].evaluate() * self.children[1].evaluate()
+        elif self.value == '/':
+            return self.children[0].evaluate() // self.children[1].evaluate()
+
+
+class UnOp(Node):
+
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+
+    def evaluate(self):
+        if self.value == '+':
+            return +self.children[0].evaluate()
+        elif self.value == '-':
+            return -self.children[0].evaluate()
+    
+
+class IntVal(Node):
+        
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+
+    def evaluate(self):
+        return self.value
+
+
+
 class Token:
 
     def __init__(self, type, value):
@@ -94,10 +145,10 @@ class Parser:
         while Parser.nex.value in ['+','-']:
             if Parser.nex.value == '+':
                 Parser.nex = Parser.tokens.selectNext()            
-                result += Parser.parseTerm()
+                result = BinOp('+', [result, Parser.parseTerm()])
             elif Parser.nex.value == '-':
                 Parser.nex = Parser.tokens.selectNext()            
-                result -= Parser.parseTerm()
+                result = BinOp('-', [result, Parser.parseTerm()])
         return result
 
 
@@ -109,10 +160,10 @@ class Parser:
         while Parser.nex.value in ['*','/']: 
             if Parser.nex.value == '*':
                 Parser.nex = Parser.tokens.selectNext()            
-                result *= Parser.parseFactor()
+                result = BinOp('*', [result, Parser.parseFactor()])
             elif Parser.nex.value == '/':
                 Parser.nex = Parser.tokens.selectNext()            
-                result //= Parser.parseFactor()
+                result = BinOp('/', [result, Parser.parseFactor()])
         return result
 
     @staticmethod
@@ -122,14 +173,14 @@ class Parser:
 
 
         if Parser.nex.type == 'Num':
-            result = int(Parser.nex.value)
+            result = IntVal(int(Parser.nex.value), None)
             Parser.nex = Parser.tokens.selectNext()
         elif Parser.nex.value == '+':
             Parser.nex = Parser.tokens.selectNext()
-            result = +Parser.parseFactor()
+            result = UnOp('+', [result, Parser.parseFactor()])
         elif Parser.nex.value == '-':
             Parser.nex = Parser.tokens.selectNext()
-            result = -Parser.parseFactor() 
+            result = UnOp('-', [result, Parser.parseFactor()])
         elif Parser.nex.value == '(':
             Parser.nex = Parser.tokens.selectNext()
             result = Parser.parseExpression()
@@ -142,9 +193,6 @@ class Parser:
         return result 
 
 
-
-
-
  
     @staticmethod
     def run(code):
@@ -152,10 +200,12 @@ class Parser:
         res = Parser.parseExpression()
 
         if Parser.tokens.actual.value == 'EOF':
-            return res
+            return res.evaluate()
         else:
             raise Exception("EOF or signal Expected")
 
 if __name__ == "__main__":
     
-    print(Parser.run(PrePro.filter(sys.argv[1])))
+    f = open(sys.argv[1], "r")
+
+    print(Parser.run(PrePro.filter(f.read())))

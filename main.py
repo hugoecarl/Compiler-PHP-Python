@@ -62,7 +62,7 @@ class UnOp(Node):
             return +self.children[0].evaluate()
         elif self.value == '-':
             return -self.children[0].evaluate()
-    
+
 
 class IntVal(Node):
         
@@ -83,6 +83,8 @@ class Token:
 
 
 class Tokenizer:
+
+   # reserved_words = ['echo']
 
     def __init__(self, origin):
         self.origin = origin
@@ -120,6 +122,14 @@ class Tokenizer:
             return self.actual
         elif self.origin[self.position] == ")":
             self.actual = Token('Paren', ')')
+            self.position += 1
+            return self.actual
+        elif self.origin[self.position] == "{":
+            self.actual = Token('Chav', '{')
+            self.position += 1
+            return self.actual
+        elif self.origin[self.position] == "}":
+            self.actual = Token('Chav', '}')
             self.position += 1
             return self.actual
         elif self.origin[self.position].isnumeric():
@@ -177,10 +187,10 @@ class Parser:
             Parser.nex = Parser.tokens.selectNext()
         elif Parser.nex.value == '+':
             Parser.nex = Parser.tokens.selectNext()
-            result = UnOp('+', [result, Parser.parseFactor()])
+            result = UnOp('+', [Parser.parseFactor(), None])
         elif Parser.nex.value == '-':
             Parser.nex = Parser.tokens.selectNext()
-            result = UnOp('-', [result, Parser.parseFactor()])
+            result = UnOp('-', [Parser.parseFactor(), None])
         elif Parser.nex.value == '(':
             Parser.nex = Parser.tokens.selectNext()
             result = Parser.parseExpression()
@@ -193,7 +203,7 @@ class Parser:
         return result 
 
 
- 
+
     @staticmethod
     def run(code):
         Parser.tokens = Tokenizer(code)
@@ -203,6 +213,7 @@ class Parser:
             return res.evaluate()
         else:
             raise Exception("EOF or signal Expected")
+
 
 if __name__ == "__main__":
     

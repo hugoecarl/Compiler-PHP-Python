@@ -14,4 +14,4 @@
 #### Digit = (0 | 1 | ... | 9);  
 
 ### Diagrama:  
-![Alt text](https://github.com/hugoecarl/Compilator/blob/roteiro3/diagrama.jpeg)
+![Alt text](https://github.com/hugoecarl/Compilator/blob/roteiro5/diagrama.jpeg)

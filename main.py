@@ -358,6 +358,6 @@ class Parser:
 
 if __name__ == "__main__":
     
-    f = open("entrada.php", "r")
+    f = open(sys.argv[1], "r")
 
     Parser.run(PrePro.filter(f.read()))

@@ -13,5 +13,5 @@
 #### Letter = (a | ... | z | A | ... | Z);  
 #### Digit = (0 | 1 | ... | 9);  
 
-### Diagrama:  
+## Diagrama:  
 ![Alt text](https://github.com/hugoecarl/Compilator/blob/roteiro5/diagrama.jpeg)

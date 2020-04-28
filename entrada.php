@@ -1,10 +1,23 @@
-<<<<<<< HEAD
---40++++++++++1
-=======
-{{;}
-$tt = ---6;
-$gg = $tt;{echo 44;}
-echo $tt / $gg;
-echo 6+9;
+{
+$x = 2;
+$y = 5;
+$n = readline();
+$i = 0;
+  while (($i < $n) or ($i == $n)) {
+    if ($x > $y)
+      $y = $y + 1;
+    else if ($x < $y) {
+      $x = $x + 1;
+    }
+    else if ($x == $y) {
+            $x = $x + $i;
+            $y = $y + $i;
+            $i = $i + 1;
+        }
+  echo $i;
+  echo $x;
+  echo $y;
+  echo 888888;
+    }
+    echo !!3;
 }
->>>>>>> Variables, print, commands

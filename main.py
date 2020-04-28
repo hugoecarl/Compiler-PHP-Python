@@ -49,6 +49,17 @@ class BinOp(Node):
             return self.children[0].evaluate(SymbolTable) * self.children[1].evaluate(SymbolTable)
         elif self.value == '/':
             return self.children[0].evaluate(SymbolTable) // self.children[1].evaluate(SymbolTable)
+        elif self.value == '==':
+            return self.children[0].evaluate(SymbolTable) == self.children[1].evaluate(SymbolTable)
+        elif self.value == '>':            
+            return self.children[0].evaluate(SymbolTable) > self.children[1].evaluate(SymbolTable)
+        elif self.value == '<':
+            return self.children[0].evaluate(SymbolTable) < self.children[1].evaluate(SymbolTable)
+        elif self.value == 'or':
+            return self.children[0].evaluate(SymbolTable) or self.children[1].evaluate(SymbolTable)
+        elif self.value == 'and':
+            return self.children[0].evaluate(SymbolTable) and self.children[1].evaluate(SymbolTable)
+
 
 
 class UnOp(Node):
@@ -62,6 +73,9 @@ class UnOp(Node):
             return +self.children[0].evaluate(SymbolTable)
         elif self.value == '-':
             return -self.children[0].evaluate(SymbolTable)
+        elif self.value == '!':
+            return not self.children[0].evaluate(SymbolTable)
+        
 
 
 class NoOp(Node):
@@ -115,8 +129,29 @@ class Identifier(Node):
         self.value = value
     
     def evaluate(self, SymbolTable):
-        return SymbolTable.Get(self.value) 
+        return SymbolTable.Get(self.value)
 
+
+class WhileOp(Node):
+    
+    def __init__(self, children):
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        while self.children[0].evaluate(SymbolTable) == True:
+            self.children[1].evaluate(SymbolTable)
+
+class ConditionalOp(Node):
+    
+    def __init__(self, children):
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        if self.children[0].evaluate(SymbolTable) == True:
+            return self.children[1].evaluate(SymbolTable)
+        elif self.children[0].evaluate(SymbolTable) == False and len(self.children) == 3:
+            return self.children[2].evaluate(SymbolTable)
+          
 
 class Commands(Node):
 
@@ -146,7 +181,7 @@ class Token:
 
 class Tokenizer:
 
-    reserved_words = ['echo']
+    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'readline']
 
     def __init__(self, origin):
         self.origin = origin
@@ -191,7 +226,23 @@ class Tokenizer:
             else:
                 raise Exception("Variavel Errada")
         elif self.origin[self.position] == "=":
-            self.actual = Token('Eq', '=')
+            self.position += 1
+            if self.origin[self.position] == "=":
+                self.position += 1
+                self.actual = Token('Symbol', '==')
+            else:
+                self.actual = Token('Eq', '=')
+            return self.actual
+        elif self.origin[self.position] == ">":
+            self.actual = Token('Symbol', '>')
+            self.position += 1
+            return self.actual
+        elif self.origin[self.position] == "<":
+            self.actual = Token('Symbol', '<')
+            self.position += 1
+            return self.actual
+        elif self.origin[self.position] == "!":
+            self.actual = Token('Symbol', '!')
             self.position += 1
             return self.actual
         elif self.origin[self.position] == ";":
@@ -239,6 +290,8 @@ class Tokenizer:
                     break
             self.actual = Token('Num', int(num))
             return self.actual
+        else:
+            raise Exception("Invalid Token")
 
 
 class Parser:  
@@ -272,7 +325,7 @@ class Parser:
             Parser.nex = Parser.tokens.selectNext()
             if Parser.nex.value == '=':
                 Parser.nex = Parser.tokens.selectNext()
-                command = Assignment(var_name, [Parser.parseExpression()])
+                command = Assignment(var_name, [Parser.parseRelExpression()])
                 if Parser.nex.value == ';':
                     Parser.nex = Parser.tokens.selectNext()
                     return command
@@ -283,39 +336,87 @@ class Parser:
         elif Parser.nex.type == "Reserved":
             if Parser.nex.value == 'echo':
                 Parser.nex = Parser.tokens.selectNext()
-                command = Echo([Parser.parseExpression()])
+                command = Echo([Parser.parseRelExpression()])
                 if Parser.nex.value == ';':
                     Parser.nex = Parser.tokens.selectNext()
                     return command
                 else:
                     raise Exception("Expected ;")
+            if Parser.nex.value == 'while':
+                Parser.nex = Parser.tokens.selectNext()
+                if Parser.nex.value == '(':
+                    Parser.nex = Parser.tokens.selectNext()
+                    relexp = Parser.parseRelExpression()
+                    if Parser.nex.value != ')':
+                        raise Exception('Expected ")"')
+                    Parser.nex = Parser.tokens.selectNext()
+                    command = WhileOp([relexp, Parser.parseCommand()])
+                    return command
+            if Parser.nex.value == 'if':
+                Parser.nex = Parser.tokens.selectNext()
+                if Parser.nex.value == '(':
+                    Parser.nex = Parser.tokens.selectNext()
+                    relexp = Parser.parseRelExpression()
+                    if Parser.nex.value != ')':
+                        raise Exception('Expected ")"')
+                    Parser.nex = Parser.tokens.selectNext()
+                    pcommand = Parser.parseCommand()
+                    command = ConditionalOp([relexp, pcommand])
+                    if Parser.nex.value == 'else':
+                        Parser.nex = Parser.tokens.selectNext()
+                        command = ConditionalOp([relexp, pcommand, Parser.parseCommand()])
+                    return command 
         else:
             return Parser.parseBlock()
 
+    
+    @staticmethod
+    def parseRelExpression():
+        result = Parser.parseExpression()
+        
+        while Parser.nex.value in ['==','>','<']:
+            if Parser.nex.value == '==':
+                    Parser.nex = Parser.tokens.selectNext()            
+                    result = BinOp('==', [result, Parser.parseExpression()])
+            elif Parser.nex.value == '<':
+                Parser.nex = Parser.tokens.selectNext()            
+                result = BinOp('<', [result, Parser.parseExpression()])            
+            elif Parser.nex.value == '>':
+                Parser.nex = Parser.tokens.selectNext()            
+                result = BinOp('>', [result, Parser.parseExpression()])
+        return result               
+   
+    
     @staticmethod
     def parseExpression():    
         result = Parser.parseTerm()
                 
-        while Parser.nex.value in ['+','-']:
+        while Parser.nex.value in ['+','-','or']:
             if Parser.nex.value == '+':
                 Parser.nex = Parser.tokens.selectNext()            
                 result = BinOp('+', [result, Parser.parseTerm()])
             elif Parser.nex.value == '-':
                 Parser.nex = Parser.tokens.selectNext()            
                 result = BinOp('-', [result, Parser.parseTerm()])
+            elif Parser.nex.value == 'or':
+                Parser.nex = Parser.tokens.selectNext()            
+                result = BinOp('or', [result, Parser.parseTerm()])      
         return result
 
     @staticmethod
     def parseTerm():      
         result = Parser.parseFactor()
                 
-        while Parser.nex.value in ['*','/']: 
+        while Parser.nex.value in ['*','/','and']: 
             if Parser.nex.value == '*':
                 Parser.nex = Parser.tokens.selectNext()            
                 result = BinOp('*', [result, Parser.parseFactor()])
             elif Parser.nex.value == '/':
                 Parser.nex = Parser.tokens.selectNext()            
                 result = BinOp('/', [result, Parser.parseFactor()])
+            elif Parser.nex.value == 'and':
+                Parser.nex = Parser.tokens.selectNext()            
+                result = BinOp('and', [result, Parser.parseFactor()])     
         return result
 
     @staticmethod
@@ -331,17 +432,32 @@ class Parser:
         elif Parser.nex.value == '-':
             Parser.nex = Parser.tokens.selectNext()
             result = UnOp('-', [Parser.parseFactor(), None])
+        elif Parser.nex.value == '!':
+            Parser.nex = Parser.tokens.selectNext()
+            result = UnOp('!', [Parser.parseFactor(), None])
         elif Parser.nex.value == '(':
             Parser.nex = Parser.tokens.selectNext()
-            result = Parser.parseExpression()
+            result = Parser.parseRelExpression()
             if Parser.nex.value != ')':
-                raise Exception('Parenteses n fechado')
+                raise Exception('Missing ")"')
             Parser.nex = Parser.tokens.selectNext()        
         elif Parser.nex.type == 'Identifier':
             result = Identifier(Parser.nex.value)
             Parser.nex = Parser.tokens.selectNext()    
+        elif Parser.nex.type == 'Reserved':
+            if Parser.nex.value == 'readline':
+                Parser.nex = Parser.tokens.selectNext()
+                if Parser.nex.value == '(':
+                    Parser.nex = Parser.tokens.selectNext()
+                    if Parser.nex.value == ')':
+                        Parser.nex = Parser.tokens.selectNext()
+                    else:
+                        raise Exception('Wrong call readline() missing ")"')
+                else:
+                    raise Exception('Wrong call readline() missing "("')
+                result = IntVal(int(input()), None)
         else:
-            raise Exception('Expected Number')
+            raise Exception('Invalid Syntax')   
         return result 
 
     @staticmethod

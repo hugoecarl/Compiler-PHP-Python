@@ -365,7 +365,9 @@ class Parser:
                     if Parser.nex.value == 'else':
                         Parser.nex = Parser.tokens.selectNext()
                         command = ConditionalOp([relexp, pcommand, Parser.parseCommand()])
-                    return command 
+                    return command
+            else:
+                raise Exception('Syntax error') 
         else:
             return Parser.parseBlock()
 

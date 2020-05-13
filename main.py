@@ -374,18 +374,17 @@ class Parser:
     
     @staticmethod
     def parseProgram():
+        commands = []
         Parser.nex = Parser.tokens.actual
 
         if Parser.nex.type == 'StartProgram':
             Parser.nex = Parser.tokens.selectNext()
-            program = Parser.parseCommand()
-            if Parser.nex.type == 'EndProgram':
-                Parser.nex = Parser.tokens.selectNext()
-                return program
-            else:
-                raise Exception("Expected end of program statement")
+            while Parser.nex.type != 'EndProgram':
+                commands.append(Parser.parseCommand())
+            Parser.nex = Parser.tokens.selectNext()
         else:
             raise Exception("Expected start of program statement")
+        return Commands(commands)
 
     
     @staticmethod

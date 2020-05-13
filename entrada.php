@@ -1,5 +1,5 @@
 <?php  
-{$x = 2;
+$x = 2;
 $y = 5;
 echo "oi";
 $n = readline();
@@ -25,5 +25,4 @@ $i = 0;
     $f = "fg";
     echo 25 and true;
     echo "99" == "99";
-  }
 ?>

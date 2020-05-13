@@ -41,24 +41,30 @@ class BinOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
+        if self.value in ['+', '-', '*', '/', '>', '<', 'or', 'and'] and (self.children[0].evaluate(SymbolTable)[1] == str or self.children[1].evaluate(SymbolTable)[1] == str):
+            raise Exception('Operation not permitted with strings')
         if self.value == '+':
-            return self.children[0].evaluate(SymbolTable) + self.children[1].evaluate(SymbolTable) 
+            return (self.children[0].evaluate(SymbolTable)[0] + self.children[1].evaluate(SymbolTable)[0], int) 
         elif self.value == '-':
-            return self.children[0].evaluate(SymbolTable) - self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] - self.children[1].evaluate(SymbolTable)[0], int)
         elif self.value == '*':
-            return self.children[0].evaluate(SymbolTable) * self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] * self.children[1].evaluate(SymbolTable)[0], int)
         elif self.value == '/':
-            return self.children[0].evaluate(SymbolTable) // self.children[1].evaluate(SymbolTable)
-        elif self.value == '==':
-            return self.children[0].evaluate(SymbolTable) == self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] // self.children[1].evaluate(SymbolTable)[0], int)
         elif self.value == '>':            
-            return self.children[0].evaluate(SymbolTable) > self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] > self.children[1].evaluate(SymbolTable)[0], bool)
         elif self.value == '<':
-            return self.children[0].evaluate(SymbolTable) < self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] < self.children[1].evaluate(SymbolTable)[0], bool)
         elif self.value == 'or':
-            return self.children[0].evaluate(SymbolTable) or self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] or self.children[1].evaluate(SymbolTable)[0], bool)
         elif self.value == 'and':
-            return self.children[0].evaluate(SymbolTable) and self.children[1].evaluate(SymbolTable)
+            return (self.children[0].evaluate(SymbolTable)[0] and self.children[1].evaluate(SymbolTable)[0], bool)
+        elif self.value == '==':
+            if (self.children[0].evaluate(SymbolTable)[1] == str and self.children[1].evaluate(SymbolTable)[1] != str) or (self.children[1].evaluate(SymbolTable)[1] == str and self.children[0].evaluate(SymbolTable)[1] != str):
+                raise Exception('Operation == not permitted with strings and different type')
+            return (self.children[0].evaluate(SymbolTable)[0] == self.children[1].evaluate(SymbolTable)[0], bool)
+        elif self.value == '.':
+            return (str(self.children[0].evaluate(SymbolTable)[0]) + str(self.children[1].evaluate(SymbolTable)[0]), str)    
 
 
 
@@ -69,13 +75,14 @@ class UnOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
+        if self.children[0].evaluate(SymbolTable)[1] == str:
+            raise Exception('Operation not permitted with strings')
         if self.value == '+':
-            return +self.children[0].evaluate(SymbolTable)
+            return (+self.children[0].evaluate(SymbolTable)[0], int)
         elif self.value == '-':
-            return -self.children[0].evaluate(SymbolTable)
+            return (-self.children[0].evaluate(SymbolTable)[0], int)
         elif self.value == '!':
-            return not self.children[0].evaluate(SymbolTable)
-        
+            return (not self.children[0].evaluate(SymbolTable)[0], bool)        
 
 
 class NoOp(Node):
@@ -88,6 +95,17 @@ class NoOp(Node):
         pass
 
 
+class ReadLine(Node):
+        
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        self.value = int(input())
+        return (self.value, int)
+
+
 class IntVal(Node):
         
     def __init__(self, value, children):
@@ -95,7 +113,27 @@ class IntVal(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        return self.value
+        return (self.value, int)
+
+
+class BoolVal(Node):
+        
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        return (self.value, bool)
+
+
+class StringVal(Node):
+        
+    def __init__(self, value, children):
+        self.value = value
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        return (self.value, str)
 
 
 class SymbolTable():
@@ -138,7 +176,7 @@ class WhileOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        while self.children[0].evaluate(SymbolTable) == True:
+        while self.children[0].evaluate(SymbolTable)[0] == True:
             self.children[1].evaluate(SymbolTable)
 
 class ConditionalOp(Node):
@@ -147,9 +185,9 @@ class ConditionalOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        if self.children[0].evaluate(SymbolTable) == True:
+        if self.children[0].evaluate(SymbolTable)[0] == True:
             return self.children[1].evaluate(SymbolTable)
-        elif self.children[0].evaluate(SymbolTable) == False and len(self.children) == 3:
+        elif self.children[0].evaluate(SymbolTable)[0] == False and len(self.children) == 3:
             return self.children[2].evaluate(SymbolTable)
           
 
@@ -169,7 +207,7 @@ class Echo(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        print(self.children[0].evaluate(SymbolTable))
+        print(self.children[0].evaluate(SymbolTable)[0])
 
 
 class Token:
@@ -181,7 +219,7 @@ class Token:
 
 class Tokenizer:
 
-    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'readline']
+    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'readline', 'true', 'false']
 
     def __init__(self, origin):
         self.origin = origin
@@ -238,9 +276,28 @@ class Tokenizer:
             self.position += 1
             return self.actual
         elif self.origin[self.position] == "<":
-            self.actual = Token('Symbol', '<')
             self.position += 1
+            if self.origin[self.position] == "?":
+                self.position += 1
+                if self.origin[self.position].lower() == "p":
+                    self.position += 1
+                    if self.origin[self.position].lower() == "h":
+                        self.position += 1
+                        if self.origin[self.position].lower() == "p":
+                            self.position += 1
+                            self.actual = Token('StartProgram', None)
+                            return self.actual
+                raise Exception("Wrong Start Program Token")
+            self.actual = Token('Symbol', '<')
             return self.actual
+        elif self.origin[self.position] == "?":
+            self.position += 1
+            if self.origin[self.position] == ">":
+                self.position += 1
+                self.actual = Token('EndProgram', None)
+                return self.actual
+            else:
+                raise Exception("Wrong End Program Token")
         elif self.origin[self.position] == "!":
             self.actual = Token('Symbol', '!')
             self.position += 1
@@ -265,6 +322,10 @@ class Tokenizer:
             self.actual = Token('String', '/')
             self.position += 1
             return self.actual
+        elif self.origin[self.position] == ".":
+            self.actual = Token('String', '.')
+            self.position += 1
+            return self.actual
         elif self.origin[self.position] == "(":
             self.actual = Token('Paren', '(')
             self.position += 1
@@ -280,6 +341,17 @@ class Tokenizer:
         elif self.origin[self.position] == "}":
             self.actual = Token('Chav', '}')
             self.position += 1
+            return self.actual
+        elif self.origin[self.position] == '"':
+            buffer = ''
+            self.position += 1
+            while self.origin[self.position] != '"':
+                buffer += self.origin[self.position]
+                self.position += 1
+                if self.position == len(self.origin):
+                    raise Exception('Missing "')
+            self.position += 1
+            self.actual = Token('Str', buffer)
             return self.actual
         elif self.origin[self.position].isnumeric():
             num = ''
@@ -298,6 +370,23 @@ class Parser:
 
     tokens = None
     nex = None
+    
+    
+    @staticmethod
+    def parseProgram():
+        Parser.nex = Parser.tokens.actual
+
+        if Parser.nex.type == 'StartProgram':
+            Parser.nex = Parser.tokens.selectNext()
+            program = Parser.parseCommand()
+            if Parser.nex.type == 'EndProgram':
+                Parser.nex = Parser.tokens.selectNext()
+                return program
+            else:
+                raise Exception("Expected end of program statement")
+        else:
+            raise Exception("Expected start of program statement")
+
     
     @staticmethod
     def parseBlock():
@@ -393,7 +482,7 @@ class Parser:
     def parseExpression():    
         result = Parser.parseTerm()
                 
-        while Parser.nex.value in ['+','-','or']:
+        while Parser.nex.value in ['+','-','or','.']:
             if Parser.nex.value == '+':
                 Parser.nex = Parser.tokens.selectNext()            
                 result = BinOp('+', [result, Parser.parseTerm()])
@@ -402,7 +491,10 @@ class Parser:
                 result = BinOp('-', [result, Parser.parseTerm()])
             elif Parser.nex.value == 'or':
                 Parser.nex = Parser.tokens.selectNext()            
-                result = BinOp('or', [result, Parser.parseTerm()])      
+                result = BinOp('or', [result, Parser.parseTerm()])
+            elif Parser.nex.value == '.':
+                Parser.nex = Parser.tokens.selectNext()            
+                result = BinOp('.', [result, Parser.parseTerm()])           
         return result
 
     @staticmethod
@@ -427,6 +519,9 @@ class Parser:
 
         if Parser.nex.type == 'Num':
             result = IntVal(int(Parser.nex.value), None)
+            Parser.nex = Parser.tokens.selectNext()
+        elif Parser.nex.type == 'Str':
+            result = StringVal(Parser.nex.value, None)
             Parser.nex = Parser.tokens.selectNext()
         elif Parser.nex.value == '+':
             Parser.nex = Parser.tokens.selectNext()
@@ -457,7 +552,13 @@ class Parser:
                         raise Exception('Wrong call readline() missing ")"')
                 else:
                     raise Exception('Wrong call readline() missing "("')
-                result = IntVal(int(input()), None)
+                result = ReadLine(None, None)
+            elif Parser.nex.value == 'true':
+                result = BoolVal(True, None)
+                Parser.nex = Parser.tokens.selectNext()
+            elif Parser.nex.value == 'false':
+                result = BoolVal(False, None)
+                Parser.nex = Parser.tokens.selectNext()
         else:
             raise Exception('Invalid Syntax')   
         return result 
@@ -465,7 +566,7 @@ class Parser:
     @staticmethod
     def run(code):
         Parser.tokens = Tokenizer(code)
-        res = Parser.parseBlock()
+        res = Parser.parseProgram()
         stable = SymbolTable()
 
         if Parser.tokens.actual.value == 'EOF':

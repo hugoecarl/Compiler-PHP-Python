@@ -23,6 +23,24 @@ class PrePro:
             i += 1   
         return ''.join(string)
         
+class Assembly():
+
+    def __init__(self):
+        self.lista_inst = []
+
+    def addinst(self, inst):
+        self.lista_inst.append(inst)
+
+    def writeFile(self, file):
+        f = open(file+'.asm', 'a')
+        
+        for i in self.lista_inst:
+            f.write(i)
+        
+        f.close()
+
+
+
 
 class Node:
 
@@ -40,11 +58,18 @@ class BinOp(Node):
         self.value = value
         self.children = children
 
-    def evaluate(self, SymbolTable):
-        if self.value in ['+', '-', '*', '/', '>', '<', 'or', 'and'] and (self.children[0].evaluate(SymbolTable)[1] == str or self.children[1].evaluate(SymbolTable)[1] == str):
-            raise Exception('Operation not permitted with strings')
+    def evaluate(self, SymbolTable, Assembly):
+        # if self.value in ['+', '-', '*', '/', '>', '<', 'or', 'and'] and (self.children[0].evaluate(SymbolTable)[1] == str or self.children[1].evaluate(SymbolTable)[1] == str):
+        #     raise Exception('Operation not permitted with strings')
         if self.value == '+':
-            return (self.children[0].evaluate(SymbolTable)[0] + self.children[1].evaluate(SymbolTable)[0], int) 
+            self.children[0].evaluate(SymbolTable, Assembly)[0]
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable)[0]
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('ADD EAX, EBX;')
+            Assembly.addinst('MOV EBX, EAX;')
+
+             
         elif self.value == '-':
             return (self.children[0].evaluate(SymbolTable)[0] - self.children[1].evaluate(SymbolTable)[0], int)
         elif self.value == '*':
@@ -60,11 +85,11 @@ class BinOp(Node):
         elif self.value == 'and':
             return (self.children[0].evaluate(SymbolTable)[0] and self.children[1].evaluate(SymbolTable)[0], bool)
         elif self.value == '==':
-            if (self.children[0].evaluate(SymbolTable)[1] == str and self.children[1].evaluate(SymbolTable)[1] != str) or (self.children[1].evaluate(SymbolTable)[1] == str and self.children[0].evaluate(SymbolTable)[1] != str):
-                raise Exception('Operation == not permitted with strings and different type')
+            # if (self.children[0].evaluate(SymbolTable)[1] == str and self.children[1].evaluate(SymbolTable)[1] != str) or (self.children[1].evaluate(SymbolTable)[1] == str and self.children[0].evaluate(SymbolTable)[1] != str):
+            #     raise Exception('Operation == not permitted with strings and different type')
             return (self.children[0].evaluate(SymbolTable)[0] == self.children[1].evaluate(SymbolTable)[0], bool)
-        elif self.value == '.':
-            return (str(self.children[0].evaluate(SymbolTable)[0]) + str(self.children[1].evaluate(SymbolTable)[0]), str)    
+        # elif self.value == '.':
+        #     return (str(self.children[0].evaluate(SymbolTable)[0]) + str(self.children[1].evaluate(SymbolTable)[0]), str)    
 
 
 
@@ -75,8 +100,8 @@ class UnOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        if self.children[0].evaluate(SymbolTable)[1] == str:
-            raise Exception('Operation not permitted with strings')
+        # if self.children[0].evaluate(SymbolTable)[1] == str:
+        #     raise Exception('Operation not permitted with strings')
         if self.value == '+':
             return (+self.children[0].evaluate(SymbolTable)[0], int)
         elif self.value == '-':
@@ -95,15 +120,15 @@ class NoOp(Node):
         pass
 
 
-class ReadLine(Node):
+# class ReadLine(Node):
         
-    def __init__(self, value, children):
-        self.value = value
-        self.children = children
+#     def __init__(self, value, children):
+#         self.value = value
+#         self.children = children
 
-    def evaluate(self, SymbolTable):
-        self.value = int(input())
-        return (self.value, int)
+#     def evaluate(self, SymbolTable):
+#         self.value = int(input())
+#         return (self.value, int)
 
 
 class IntVal(Node):
@@ -112,8 +137,8 @@ class IntVal(Node):
         self.value = value
         self.children = children
 
-    def evaluate(self, SymbolTable):
-        return (self.value, int)
+    def evaluate(self, SymbolTable, Assembly):
+        Assembly.addinst('MOV EBX, ' + str(self.value) + ';')
 
 
 class BoolVal(Node):
@@ -126,14 +151,14 @@ class BoolVal(Node):
         return (self.value, bool)
 
 
-class StringVal(Node):
+# class StringVal(Node):
         
-    def __init__(self, value, children):
-        self.value = value
-        self.children = children
+#     def __init__(self, value, children):
+#         self.value = value
+#         self.children = children
 
-    def evaluate(self, SymbolTable):
-        return (self.value, str)
+#     def evaluate(self, SymbolTable):
+#         return (self.value, str)
 
 
 class SymbolTable():
@@ -157,8 +182,8 @@ class Assignment(Node):
         self.value = value
         self.children = children
 
-    def evaluate(self, SymbolTable):
-        SymbolTable.Set(self.value, self.children[0].evaluate(SymbolTable))
+    def evaluate(self, SymbolTable, Assembly):
+        SymbolTable.Set(self.value, self.children[0].evaluate(SymbolTable, Assembly))
 
 
 class Identifier(Node):
@@ -219,7 +244,7 @@ class Token:
 
 class Tokenizer:
 
-    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'readline', 'true', 'false']
+    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'true', 'false'] #excluido readline
 
     def __init__(self, origin):
         self.origin = origin
@@ -322,10 +347,10 @@ class Tokenizer:
             self.actual = Token('String', '/')
             self.position += 1
             return self.actual
-        elif self.origin[self.position] == ".":
-            self.actual = Token('String', '.')
-            self.position += 1
-            return self.actual
+        # elif self.origin[self.position] == ".":
+        #     self.actual = Token('String', '.')
+        #     self.position += 1
+        #     return self.actual
         elif self.origin[self.position] == "(":
             self.actual = Token('Paren', '(')
             self.position += 1
@@ -342,17 +367,17 @@ class Tokenizer:
             self.actual = Token('Chav', '}')
             self.position += 1
             return self.actual
-        elif self.origin[self.position] == '"':
-            buffer = ''
-            self.position += 1
-            while self.origin[self.position] != '"':
-                buffer += self.origin[self.position]
-                self.position += 1
-                if self.position == len(self.origin):
-                    raise Exception('Missing "')
-            self.position += 1
-            self.actual = Token('Str', buffer)
-            return self.actual
+        # elif self.origin[self.position] == '"':
+        #     buffer = ''
+        #     self.position += 1
+        #     while self.origin[self.position] != '"':
+        #         buffer += self.origin[self.position]
+        #         self.position += 1
+        #         if self.position == len(self.origin):
+        #             raise Exception('Missing "')
+        #     self.position += 1
+        #     self.actual = Token('Str', buffer)
+        #     return self.actual
         elif self.origin[self.position].isnumeric():
             num = ''
             while self.origin[self.position].isnumeric():
@@ -491,9 +516,9 @@ class Parser:
             elif Parser.nex.value == 'or':
                 Parser.nex = Parser.tokens.selectNext()            
                 result = BinOp('or', [result, Parser.parseTerm()])
-            elif Parser.nex.value == '.':
-                Parser.nex = Parser.tokens.selectNext()            
-                result = BinOp('.', [result, Parser.parseTerm()])           
+            # elif Parser.nex.value == '.':
+            #     Parser.nex = Parser.tokens.selectNext()            
+            #     result = BinOp('.', [result, Parser.parseTerm()])           
         return result
 
     @staticmethod
@@ -519,9 +544,9 @@ class Parser:
         if Parser.nex.type == 'Num':
             result = IntVal(int(Parser.nex.value), None)
             Parser.nex = Parser.tokens.selectNext()
-        elif Parser.nex.type == 'Str':
-            result = StringVal(Parser.nex.value, None)
-            Parser.nex = Parser.tokens.selectNext()
+        # elif Parser.nex.type == 'Str':
+        #     result = StringVal(Parser.nex.value, None)
+        #     Parser.nex = Parser.tokens.selectNext()
         elif Parser.nex.value == '+':
             Parser.nex = Parser.tokens.selectNext()
             result = UnOp('+', [Parser.parseFactor(), None])
@@ -541,18 +566,18 @@ class Parser:
             result = Identifier(Parser.nex.value)
             Parser.nex = Parser.tokens.selectNext()    
         elif Parser.nex.type == 'Reserved':
-            if Parser.nex.value == 'readline':
-                Parser.nex = Parser.tokens.selectNext()
-                if Parser.nex.value == '(':
-                    Parser.nex = Parser.tokens.selectNext()
-                    if Parser.nex.value == ')':
-                        Parser.nex = Parser.tokens.selectNext()
-                    else:
-                        raise Exception('Wrong call readline() missing ")"')
-                else:
-                    raise Exception('Wrong call readline() missing "("')
-                result = ReadLine(None, None)
-            elif Parser.nex.value == 'true':
+            # if Parser.nex.value == 'readline':
+            #     Parser.nex = Parser.tokens.selectNext()
+            #     if Parser.nex.value == '(':
+            #         Parser.nex = Parser.tokens.selectNext()
+            #         if Parser.nex.value == ')':
+            #             Parser.nex = Parser.tokens.selectNext()
+            #         else:
+            #             raise Exception('Wrong call readline() missing ")"')
+            #     else:
+            #         raise Exception('Wrong call readline() missing "("')
+            #     result = ReadLine(None, None)
+            if Parser.nex.value == 'true':
                 result = BoolVal(True, None)
                 Parser.nex = Parser.tokens.selectNext()
             elif Parser.nex.value == 'false':
@@ -567,9 +592,10 @@ class Parser:
         Parser.tokens = Tokenizer(code)
         res = Parser.parseProgram()
         stable = SymbolTable()
+        assembly = Assembly()
 
         if Parser.tokens.actual.value == 'EOF':
-            return res.evaluate(stable)
+            return res.evaluate(stable, assembly)
         else:
             raise Exception("EOF or signal Expected")
 

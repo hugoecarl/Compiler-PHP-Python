@@ -27,17 +27,52 @@ class Assembly():
 
     def __init__(self):
         self.lista_inst = []
+        self.num_loop = 0
+        self.saidaloop = 0
+        self.num_else = 0
+        self.saidacond = 0
 
     def addinst(self, inst):
         self.lista_inst.append(inst)
 
     def writeFile(self, file):
-        f = open(file+'.asm', 'a')
-        
         for i in self.lista_inst:
-            f.write(i)
+            print(i)
+        f = open('modelo.asm', 'r')
+        p = open('saida.asm', 'w')
+        p.write('')
+        p.close()
+        f1 = open('saida.asm', 'a')
+
+        
+        for i in f:
+            f1.write(i)
+            if 'codigo gerado pelo compilador' in i:
+                for j in self.lista_inst:
+                    f1.write(j+'\n')
         
         f.close()
+        f1.close()
+
+    def numLoop(self):
+        label = self.num_loop
+        self.num_loop += 1
+        return label
+
+    def saidaLoop(self):
+        label = self.saidaloop
+        self.saidaloop += 1
+        return label
+
+    def numElse(self):
+        label = self.num_else
+        self.num_else += 1
+        return label
+
+    def saidaCond(self):
+        label = self.saidacond
+        self.saidacond += 1
+        return label
 
 
 
@@ -48,7 +83,7 @@ class Node:
         self.value = None
         self.children = children
 
-    def evaluate(self, SymbolTable):
+    def evaluate(self, SymbolTable, Assembly):
         return 
 
 
@@ -62,34 +97,72 @@ class BinOp(Node):
         # if self.value in ['+', '-', '*', '/', '>', '<', 'or', 'and'] and (self.children[0].evaluate(SymbolTable)[1] == str or self.children[1].evaluate(SymbolTable)[1] == str):
         #     raise Exception('Operation not permitted with strings')
         if self.value == '+':
-            self.children[0].evaluate(SymbolTable, Assembly)[0]
+            self.children[0].evaluate(SymbolTable, Assembly)
             Assembly.addinst('PUSH EBX;')
-            self.children[1].evaluate(SymbolTable)[0]
+            self.children[1].evaluate(SymbolTable, Assembly)
             Assembly.addinst('POP EAX;')
             Assembly.addinst('ADD EAX, EBX;')
-            Assembly.addinst('MOV EBX, EAX;')
-
-             
+            Assembly.addinst('MOV EBX, EAX;')     
         elif self.value == '-':
-            return (self.children[0].evaluate(SymbolTable)[0] - self.children[1].evaluate(SymbolTable)[0], int)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('SUB EAX, EBX;')
+            Assembly.addinst('MOV EBX, EAX;') 
         elif self.value == '*':
-            return (self.children[0].evaluate(SymbolTable)[0] * self.children[1].evaluate(SymbolTable)[0], int)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('IMUL EBX;')
+            Assembly.addinst('MOV EBX, EAX;') 
         elif self.value == '/':
-            return (self.children[0].evaluate(SymbolTable)[0] // self.children[1].evaluate(SymbolTable)[0], int)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('IDIV EBX;')
+            Assembly.addinst('MOV EBX, EAX;') 
         elif self.value == '>':            
-            return (self.children[0].evaluate(SymbolTable)[0] > self.children[1].evaluate(SymbolTable)[0], bool)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('CMP EAX, EBX;')
+            Assembly.addinst('CALL binop_jg;') 
         elif self.value == '<':
-            return (self.children[0].evaluate(SymbolTable)[0] < self.children[1].evaluate(SymbolTable)[0], bool)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('CMP EAX, EBX;')
+            Assembly.addinst('CALL binop_jl;') 
         elif self.value == 'or':
-            return (self.children[0].evaluate(SymbolTable)[0] or self.children[1].evaluate(SymbolTable)[0], bool)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('OR EAX, EBX;')
+            Assembly.addinst('MOV EBX, EAX;')     
         elif self.value == 'and':
-            return (self.children[0].evaluate(SymbolTable)[0] and self.children[1].evaluate(SymbolTable)[0], bool)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('AND EAX, EBX;')
+            Assembly.addinst('MOV EBX, EAX;')     
         elif self.value == '==':
-            # if (self.children[0].evaluate(SymbolTable)[1] == str and self.children[1].evaluate(SymbolTable)[1] != str) or (self.children[1].evaluate(SymbolTable)[1] == str and self.children[0].evaluate(SymbolTable)[1] != str):
-            #     raise Exception('Operation == not permitted with strings and different type')
-            return (self.children[0].evaluate(SymbolTable)[0] == self.children[1].evaluate(SymbolTable)[0], bool)
-        # elif self.value == '.':
-        #     return (str(self.children[0].evaluate(SymbolTable)[0]) + str(self.children[1].evaluate(SymbolTable)[0]), str)    
+        #     # if (self.children[0].evaluate(SymbolTable)[1] == str and self.children[1].evaluate(SymbolTable)[1] != str) or (self.children[1].evaluate(SymbolTable)[1] == str and self.children[0].evaluate(SymbolTable)[1] != str):
+        #     #     raise Exception('Operation == not permitted with strings and different type')
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('PUSH EBX;')
+            self.children[1].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('POP EAX;')
+            Assembly.addinst('CMP EBX, EAX;')
+            Assembly.addinst('CALL binop_je;') 
+         #elif self.value == '.':
+          #   return (str(self.children[0].evaluate(SymbolTable)[0]) + str(self.children[1].evaluate(SymbolTable)[0]), str)    
 
 
 
@@ -99,15 +172,17 @@ class UnOp(Node):
         self.value = value
         self.children = children
 
-    def evaluate(self, SymbolTable):
+    def evaluate(self, SymbolTable, Assembly):
         # if self.children[0].evaluate(SymbolTable)[1] == str:
         #     raise Exception('Operation not permitted with strings')
         if self.value == '+':
-            return (+self.children[0].evaluate(SymbolTable)[0], int)
+            self.children[0].evaluate(SymbolTable, Assembly)
         elif self.value == '-':
-            return (-self.children[0].evaluate(SymbolTable)[0], int)
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('NEG EBX;')
         elif self.value == '!':
-            return (not self.children[0].evaluate(SymbolTable)[0], bool)        
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('NOT EBX;')       
 
 
 class NoOp(Node):
@@ -116,7 +191,7 @@ class NoOp(Node):
         self.value = value
         self.children = children
 
-    def evaluate(self, SymbolTable):
+    def evaluate(self, SymbolTable, Assembly):
         pass
 
 
@@ -147,8 +222,8 @@ class BoolVal(Node):
         self.value = value
         self.children = children
 
-    def evaluate(self, SymbolTable):
-        return (self.value, bool)
+    def evaluate(self, SymbolTable, Assembly):
+        Assembly.addinst('MOV EBX, ' + str(self.value) + ';')
 
 
 # class StringVal(Node):
@@ -165,13 +240,14 @@ class SymbolTable():
     
     def __init__(self):
         self.Symbols = {}
+        self.var_num = 1
     
-    def Set(self, symbol, value):
+    def Set(self, symbol, value, Assembly):
         self.Symbols[symbol] = value
 
-    def Get(self, symbol):
+    def Get(self, symbol, Assembly):
         if symbol in self.Symbols:
-            return self.Symbols[symbol]
+            Assembly.addinst('MOV EBX, [EBP - '+str(self.Symbols[symbol])+'];')  
         else:
             raise Exception("Variavel inexistente")
 
@@ -183,7 +259,15 @@ class Assignment(Node):
         self.children = children
 
     def evaluate(self, SymbolTable, Assembly):
-        SymbolTable.Set(self.value, self.children[0].evaluate(SymbolTable, Assembly))
+        if self.value not in SymbolTable.Symbols:
+            Assembly.addinst('PUSH DWORD 0')
+            self.children[0].evaluate(SymbolTable, Assembly)
+            SymbolTable.Set(self.value, SymbolTable.var_num * 4, Assembly)
+            SymbolTable.var_num += 1
+            Assembly.addinst('MOV [EBP - '+str(SymbolTable.Symbols[self.value])+'], EBX;')
+        else:
+            self.children[0].evaluate(SymbolTable, Assembly)
+            Assembly.addinst('MOV [EBP - '+str(SymbolTable.Symbols[self.value])+'], EBX;')
 
 
 class Identifier(Node):
@@ -191,8 +275,8 @@ class Identifier(Node):
     def __init__(self, value):
         self.value = value
     
-    def evaluate(self, SymbolTable):
-        return SymbolTable.Get(self.value)
+    def evaluate(self, SymbolTable, Assembly):
+        SymbolTable.Get(self.value, Assembly)
 
 
 class WhileOp(Node):
@@ -200,30 +284,64 @@ class WhileOp(Node):
     def __init__(self, children):
         self.children = children
 
+<<<<<<< HEAD
     def evaluate(self, SymbolTable):
         while bool(self.children[0].evaluate(SymbolTable)[0]) == True:
             self.children[1].evaluate(SymbolTable)
+=======
+    def evaluate(self, SymbolTable, Assembly):
+        nloop = Assembly.numLoop()
+        sloop = Assembly.saidaLoop()
+        Assembly.addinst('LOOP_'+str(nloop)+':')
+        self.children[0].evaluate(SymbolTable, Assembly)
+        Assembly.addinst('CMP EBX, False;')
+        Assembly.addinst('JE SAIDALOOP_'+str(sloop)+';')
+        self.children[1].evaluate(SymbolTable, Assembly)
+        Assembly.addinst('JMP LOOP_'+str(nloop)+';')
+        Assembly.addinst('SAIDALOOP_'+str(sloop)+':')
+
+>>>>>>> Assembly exe
 
 class ConditionalOp(Node):
     
     def __init__(self, children):
         self.children = children
 
+<<<<<<< HEAD
     def evaluate(self, SymbolTable):
         if bool(self.children[0].evaluate(SymbolTable)[0]) == True:
             return self.children[1].evaluate(SymbolTable)
         elif bool(self.children[0].evaluate(SymbolTable)[0]) == False and len(self.children) == 3:
             return self.children[2].evaluate(SymbolTable)
           
+=======
+    def evaluate(self, SymbolTable, Assembly):
+        nelse = Assembly.numElse()
+        scond = Assembly.saidaCond()   
+        self.children[0].evaluate(SymbolTable, Assembly)
+        Assembly.addinst('CMP EBX, False;')
+        if len(self.children) == 3:
+            Assembly.addinst('JE ELSE_'+str(nelse)+';')
+        else:
+            Assembly.addinst('JE SAIDACOND_'+str(scond)+';')
+        self.children[1].evaluate(SymbolTable, Assembly)
+        if len(self.children) == 3:
+            Assembly.addinst('JMP SAIDACOND_'+str(scond)+';')
+            Assembly.addinst('ELSE_'+str(nelse)+':')
+            self.children[2].evaluate(SymbolTable, Assembly)
+        Assembly.addinst('SAIDACOND_'+str(scond)+':')
+
+        
+>>>>>>> Assembly exe
 
 class Commands(Node):
 
     def __init__(self, children):
         self.children = children 
 
-    def evaluate(self, SymbolTable):
+    def evaluate(self, SymbolTable, Assembly):
         for i in self.children:
-            i.evaluate(SymbolTable)
+            i.evaluate(SymbolTable, Assembly)
 
 
 class Echo(Node):
@@ -231,8 +349,11 @@ class Echo(Node):
     def __init__(self, children):
         self.children = children
 
-    def evaluate(self, SymbolTable):
-        print(self.children[0].evaluate(SymbolTable)[0])
+    def evaluate(self, SymbolTable, Assembly):
+        self.children[0].evaluate(SymbolTable, Assembly)
+        Assembly.addinst('PUSH EBX;')
+        Assembly.addinst('CALL print;')
+        Assembly.addinst('POP EBX;')
 
 
 class Token:
@@ -595,7 +716,8 @@ class Parser:
         assembly = Assembly()
 
         if Parser.tokens.actual.value == 'EOF':
-            return res.evaluate(stable, assembly)
+            res.evaluate(stable, assembly)
+            assembly.writeFile('teste')
         else:
             raise Exception("EOF or signal Expected")
 

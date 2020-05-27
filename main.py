@@ -176,7 +176,7 @@ class WhileOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        while self.children[0].evaluate(SymbolTable)[0] == True:
+        while bool(self.children[0].evaluate(SymbolTable)[0]) == True:
             self.children[1].evaluate(SymbolTable)
 
 class ConditionalOp(Node):
@@ -185,9 +185,9 @@ class ConditionalOp(Node):
         self.children = children
 
     def evaluate(self, SymbolTable):
-        if self.children[0].evaluate(SymbolTable)[0] == True:
+        if bool(self.children[0].evaluate(SymbolTable)[0]) == True:
             return self.children[1].evaluate(SymbolTable)
-        elif self.children[0].evaluate(SymbolTable)[0] == False and len(self.children) == 3:
+        elif bool(self.children[0].evaluate(SymbolTable)[0]) == False and len(self.children) == 3:
             return self.children[2].evaluate(SymbolTable)
           
 

@@ -36,8 +36,8 @@ class Assembly():
         self.lista_inst.append(inst)
 
     def writeFile(self, file):
-        for i in self.lista_inst:
-            print(i)
+       # for i in self.lista_inst:
+        #    print(i)
         f = open('modelo.asm', 'r')
         p = open('saida.asm', 'w')
         p.write('')
@@ -284,11 +284,6 @@ class WhileOp(Node):
     def __init__(self, children):
         self.children = children
 
-<<<<<<< HEAD
-    def evaluate(self, SymbolTable):
-        while bool(self.children[0].evaluate(SymbolTable)[0]) == True:
-            self.children[1].evaluate(SymbolTable)
-=======
     def evaluate(self, SymbolTable, Assembly):
         nloop = Assembly.numLoop()
         sloop = Assembly.saidaLoop()
@@ -300,21 +295,12 @@ class WhileOp(Node):
         Assembly.addinst('JMP LOOP_'+str(nloop)+';')
         Assembly.addinst('SAIDALOOP_'+str(sloop)+':')
 
->>>>>>> Assembly exe
 
 class ConditionalOp(Node):
     
     def __init__(self, children):
         self.children = children
 
-<<<<<<< HEAD
-    def evaluate(self, SymbolTable):
-        if bool(self.children[0].evaluate(SymbolTable)[0]) == True:
-            return self.children[1].evaluate(SymbolTable)
-        elif bool(self.children[0].evaluate(SymbolTable)[0]) == False and len(self.children) == 3:
-            return self.children[2].evaluate(SymbolTable)
-          
-=======
     def evaluate(self, SymbolTable, Assembly):
         nelse = Assembly.numElse()
         scond = Assembly.saidaCond()   
@@ -332,7 +318,6 @@ class ConditionalOp(Node):
         Assembly.addinst('SAIDACOND_'+str(scond)+':')
 
         
->>>>>>> Assembly exe
 
 class Commands(Node):
 

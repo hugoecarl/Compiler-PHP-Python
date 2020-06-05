@@ -1,39 +1,32 @@
 <?php  
-$x = 2;
-$y = 5;
-$i = 0;
-$n =5;
-$d = 1;
-$c1 = 0;
+
+function fdsf($x) {
+    if ($x == 0){
+    return 1;
+    } else {
+    $y = fdsf($x - 1) + 3;
+    return $y;
+    }
+}
+
+function sf($x, $y) {
+    return $x - $y;
+    echo 3;
+    return $x + $y;
+}
 
 
-  while (($i < $n) or ($i == $n)) {
-    if ($x > $y)
-      $y = $y + 1;
-    else if ($x < $y) {
-      $x = $x + 1;
-    
-    while ($c1 < 6){
-      $c2 = 0;
-      while ($c2 < 6){
-        echo 9;
-      $c2 = $c2 + 1;
-      }
-      $c1 = $c1 + 1;
+function sos($d) {
+    if ($d > 1) {
+        sos($d - 1);
     }
-    
-    }
-    else if (($x == $y) and (true)){
-            echo 7;
-        } else { $d = $d * 2; echo $d; }
-  echo $i;
-  $i = $i + 1;
-    }   
-    echo 25 and true; 
+    echo $d;
+}
 
-    if (false == false){
-      echo 2;
-    }
-    echo $x;
+
+sos(4);
+
+echo sf(3, 2);
+
 
 ?>

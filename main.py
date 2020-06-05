@@ -136,20 +136,43 @@ class StringVal(Node):
         return (self.value, str)
 
 
-class SymbolTable():
+class SymbolTabl():
+    
+    Funcs = {}
     
     def __init__(self):
         self.Symbols = {}
+        self.ret = None
     
     def Set(self, symbol, value):
         self.Symbols[symbol] = value
-
+    
     def Get(self, symbol):
         if symbol in self.Symbols:
             return self.Symbols[symbol]
         else:
             raise Exception("Variavel inexistente")
+    
+    def SetReturnVal(self, value):
+        self.ret = value
 
+    def GetReturnVal(self):
+        return self.ret
+    
+    @staticmethod
+    def SetFunc(symbol, value):
+        if symbol in SymbolTabl.Funcs:
+            raise Exception("Funcao ja declarada")
+        SymbolTabl.Funcs[symbol] = value
+
+    @staticmethod
+    def GetFunc(symbol):
+        if symbol in SymbolTabl.Funcs:
+            return SymbolTabl.Funcs[symbol]
+        else:
+            raise Exception("Funcao inexistente")
+
+    
 
 class Assignment(Node):
 
@@ -191,6 +214,44 @@ class ConditionalOp(Node):
             return self.children[2].evaluate(SymbolTable)
           
 
+class FuncDecOp(Node):
+
+    def __init__(self, value, children):
+        self.value = value 
+
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        SymbolTable.SetFunc(self.value, self.children)
+
+
+class FuncCallOp(Node):
+
+    def __init__(self, value, children):
+        self.value = value 
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        Stable = SymbolTabl()
+        FuncDec = SymbolTable.GetFunc(self.value)
+        if len(self.children) != len(FuncDec[0]):
+            raise Exception("Wrong arguments")
+        for i in range(len(FuncDec[0])):
+            Stable.Set(FuncDec[0][i], self.children[i].evaluate(SymbolTable))
+        FuncDec[1].evaluate(Stable)
+        if Stable.GetReturnVal() != None:
+            return Stable.GetReturnVal() 
+
+
+class ReturnOp(Node):
+
+    def __init__(self, children):
+        self.children = children
+
+    def evaluate(self, SymbolTable):
+        SymbolTable.SetReturnVal(self.children[0].evaluate(SymbolTable)) 
+
+
 class Commands(Node):
 
     def __init__(self, children):
@@ -198,6 +259,8 @@ class Commands(Node):
 
     def evaluate(self, SymbolTable):
         for i in self.children:
+            if SymbolTable.GetReturnVal() != None:
+                break
             i.evaluate(SymbolTable)
 
 
@@ -219,12 +282,12 @@ class Token:
 
 class Tokenizer:
 
-    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'readline', 'true', 'false']
+    reserved_words = ['echo', 'while', 'if', 'else', 'or', 'and', 'readline', 'true', 'false', 'function', 'return']
 
     def __init__(self, origin):
         self.origin = origin
         self.position = 0
-        self.actual = None
+        self.actual = Token(None, None)
         self.selectNext()
         
 
@@ -240,7 +303,7 @@ class Tokenizer:
             return self.selectNext()
         elif self.origin[self.position].isalpha():
             buffer = ''
-            while self.origin[self.position].isalpha(): 
+            while self.origin[self.position].isalpha() or self.origin[self.position] == '_' or self.origin[self.position].isnumeric(): 
                 buffer += self.origin[self.position]
                 self.position += 1
                 if self.position == len(self.origin):
@@ -248,8 +311,12 @@ class Tokenizer:
             if buffer.lower() in Tokenizer.reserved_words:
                 self.actual = Token('Reserved', buffer.lower())
                 return self.actual
+            elif self.actual.value == 'function':
+                self.actual = Token('NameFunc', buffer)
+                return self.actual
             else:
-                raise Exception("Not in reserved words")
+                self.actual = Token('Funcall', buffer)
+                return self.actual
         elif self.origin[self.position] == "$":
             self.position += 1
             if self.origin[self.position].isalpha():
@@ -342,6 +409,10 @@ class Tokenizer:
             self.actual = Token('Chav', '}')
             self.position += 1
             return self.actual
+        elif self.origin[self.position] == ",":
+            self.actual = Token('Virgula', ',')
+            self.position += 1
+            return self.actual
         elif self.origin[self.position] == '"':
             buffer = ''
             self.position += 1
@@ -430,7 +501,7 @@ class Parser:
                     return command
                 else:
                     raise Exception("Expected ;")
-            if Parser.nex.value == 'while':
+            elif Parser.nex.value == 'while':
                 Parser.nex = Parser.tokens.selectNext()
                 if Parser.nex.value == '(':
                     Parser.nex = Parser.tokens.selectNext()
@@ -440,7 +511,7 @@ class Parser:
                     Parser.nex = Parser.tokens.selectNext()
                     command = WhileOp([relexp, Parser.parseCommand()])
                     return command
-            if Parser.nex.value == 'if':
+            elif Parser.nex.value == 'if':
                 Parser.nex = Parser.tokens.selectNext()
                 if Parser.nex.value == '(':
                     Parser.nex = Parser.tokens.selectNext()
@@ -454,11 +525,68 @@ class Parser:
                         Parser.nex = Parser.tokens.selectNext()
                         command = ConditionalOp([relexp, pcommand, Parser.parseCommand()])
                     return command
+            elif Parser.nex.value == 'function':
+                Parser.nex = Parser.tokens.selectNext()
+                funcname = Parser.nex.value
+                Parser.nex = Parser.tokens.selectNext()
+                if Parser.nex.value == '(':
+                    Parser.nex = Parser.tokens.selectNext()
+                    lista_var_func = []
+                    while Parser.nex.type == 'Identifier':
+                        lista_var_func.append(Parser.nex.value)
+                        Parser.nex = Parser.tokens.selectNext()
+                        if Parser.nex.value == ',':
+                            Parser.nex = Parser.tokens.selectNext()
+                        elif Parser.nex.value == ')':
+                            break
+                        else:
+                            raise Exception('Wrong declaration of function')
+                    if Parser.nex.value == ')':
+                        Parser.nex = Parser.tokens.selectNext()
+                        command = FuncDecOp(funcname, [lista_var_func, Parser.parseBlock()])
+                        return command
+                    else:
+                        raise Exception('Wrong declaration of function')
+                else:
+                    raise Exception('Wrong declaration of function')
+            elif Parser.nex.value == 'return':
+                Parser.nex = Parser.tokens.selectNext()
+                command = ReturnOp([Parser.parseRelExpression()])
+                if Parser.nex.value == ';':
+                    Parser.nex = Parser.tokens.selectNext()
+                    return command
+                else:
+                    raise Exception("Expected ;")
             else:
                 raise Exception('Syntax error') 
+        elif Parser.nex.type == 'Funcall':
+            funcname = Parser.nex.value
+            Parser.nex = Parser.tokens.selectNext()
+            if Parser.nex.value == '(':
+                lista_entrada = []
+                Parser.nex = Parser.tokens.selectNext()
+                while Parser.nex.value != ')':
+                    lista_entrada.append(Parser.parseRelExpression())
+                    if Parser.nex.value == ',':
+                        Parser.nex = Parser.tokens.selectNext()
+                    elif Parser.nex.value == ')':
+                        break
+                    else:
+                        raise Exception('Wrong function call declaration')
+                if Parser.nex.value != ')':
+                    raise Exception('Wrong function call declaration')
+                Parser.nex = Parser.tokens.selectNext()
+                command = FuncCallOp(funcname, lista_entrada)
+                if Parser.nex.value == ';':
+                    Parser.nex = Parser.tokens.selectNext()
+                    return command
+                else:
+                    raise Exception("Expected ;")
+            else:
+                raise Exception('Wrong function call declaration')
         else:
             return Parser.parseBlock()
-
+                                                                                                                                                                                                                                                                        
     
     @staticmethod
     def parseRelExpression():
@@ -558,6 +686,27 @@ class Parser:
             elif Parser.nex.value == 'false':
                 result = BoolVal(False, None)
                 Parser.nex = Parser.tokens.selectNext()
+        elif Parser.nex.type == 'Funcall':
+            funcname = Parser.nex.value
+            Parser.nex = Parser.tokens.selectNext()
+            if Parser.nex.value == '(':
+                lista_entrada = []
+                Parser.nex = Parser.tokens.selectNext()
+                while Parser.nex.value != ')':
+                    lista_entrada.append(Parser.parseRelExpression())
+                    if Parser.nex.value == ',':
+                        Parser.nex = Parser.tokens.selectNext()
+                    elif Parser.nex.value == ')':
+                        break
+                    else:
+                        raise Exception('Wrong function call declaration')
+                if Parser.nex.value != ')':
+                    raise Exception('Wrong function call declaration')
+                Parser.nex = Parser.tokens.selectNext()
+                command = FuncCallOp(funcname, lista_entrada)
+                return command
+            else:
+                raise Exception('Wrong function call declaration')    
         else:
             raise Exception('Invalid Syntax')   
         return result 
@@ -566,7 +715,7 @@ class Parser:
     def run(code):
         Parser.tokens = Tokenizer(code)
         res = Parser.parseProgram()
-        stable = SymbolTable()
+        stable = SymbolTabl()
 
         if Parser.tokens.actual.value == 'EOF':
             return res.evaluate(stable)

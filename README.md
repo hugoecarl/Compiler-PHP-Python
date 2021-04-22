@@ -1,5 +1,7 @@
 # Compilator
 
+This project is a version of a php compilator made using python, with a pre-processing stage, a lexic, syntactic and semantic analyzer to translate the inputs from a simple text into an assembly instruction that can run in any x86-64 architecture (branch roteiro8), or just for running using python the php code (main). The whole project is built in the file main.py, to run just execute the main script with the php code or file as an input. The script first remove all comments in the pre-processing section and then tokenizes all the characters for the parser to build the stacks of commands, executing everything in the right order.
+
 ## EBNF:  
 #### Program = "<?php", Command, "?>";
 #### Block = "{", {Command}, "}";  
